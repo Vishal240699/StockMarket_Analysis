@@ -1,0 +1,74 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+hist(finviz$Price, breaks=100, main="Price Distribution", xlab="Price")
+```
+
+As we can see the graph isn't worth it due to higher price in outliers
+Therefore we  try adding a upper limit of $150.
+
+```{r}
+hist(finviz$Price[finviz$Price<150], breaks=100, main="Price Distribution", xlab="Price")
+```
+
+This graph is much better than the previous one and tells us that majority of stocks in our dataset are under $50
+We shouldn't be so sure about this graph, as what if with low prices there are low quality products or the competitors have a high price.
+Therefore we will try getting average prices by business sector and how they compare.
+
+```{r}
+ggplot(sector_avg_prices, aes(x=Sector, y=Sector_Avg_Price,fill=Sector)) +
+    geom_bar(stat="identity") + ggtitle("Sector Avg Prices") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+As we can see clearly , Financial sector has significantly higher prices than other sectors. 
+What is the reason, lets see
+
+ We create a chart showing avg prices of industry in financial sector
+```{r}
+ggplot(industry_chart, aes(x=Industry, y=Industry_Avg_Price, fill=Industry)) +
+    geom_bar(stat="identity") + theme(legend.position="none") +
+    ggtitle("Industry Avg Prices") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+Wow!! As we can see Insurance Diversified stocks are crazy high !! 
+So, this is the main culprit for giving financial sector a boost for sector_avg_price
+Let's research some more
+
+
+Exploring the companies in the Industry "Industry - Diversifies"
+```{r}
+ggplot(company_chart, aes(x=Company, y=Price, fill=Company)) +
+    geom_bar(stat="identity") + theme(legend.position="none") +
+    ggtitle("Company Avg Prices") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+Well there are a few companies, but we can see clearly who leads thes industry, it is none other than "Berkshire Hathaway Inc."
+Currently their stock price is greter than 3e+05 per share.
+Whewww... That's a lot.
+
+Lets remove this from our list and lets see what happens.
+
+After removal, and drawing the graph again for sector_avg_price
+```{r}
+ggplot(sector_avg_prices, aes(x=Sector, y=Sector_Avg_Price, fill=Sector)) +
+    geom_bar(stat="identity") + ggtitle("Sector Avg Prices") +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
