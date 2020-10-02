@@ -1,0 +1,33 @@
+Few packages must be insalled before going on with the project.
+
+Open R and install the following packages
+install.packages("XML")
+install.packages("ggplot2")
+install.packages("dplyr")
+install.packages("reshape2")
+install.packages("zoo")
+
+After installing load the libraries in the current R setup
+library(XML)
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+library(zoo)
+
+
+Some info regarding the libraries-
+
+XML - XML is a file format which shares both the file format and the data on the World Wide Web, intranets,
+and elsewhere using standard ASCII text. It stands for Extensible Markup Language (XML).
+Similar to HTML it contains markup tags. But unlike HTML where the markup tag describes structure of the page,
+in xml the markup tags describe the meaning of the data contained into the file.
+
+ggplot2 - ggplot2 will help us to create beautiful graphs and visualizations from our data
+
+dplyr - One of the core packages of the tidyverse in R,dplyr is primarily a set of
+functions designed to enable dataframe manipulation in an intuitive, user-friendly way
+
+reshape2 - reshape2 is an R package written by Hadley Wickham that makes it easy to transform data between wide and long formats.
+
+zoo - The zoo package interfaces to all other time series packages on CRAN. This makes it easy to pass the time series objects between zoo
+& other time series packages. The zoo package is an infrastructure that tries to do all basic things well, but it doesn't provide modeling functionality.
