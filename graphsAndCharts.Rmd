@@ -72,3 +72,8 @@ ggplot(sector_avg_prices, aes(x=Sector, y=Sector_Avg_Price, fill=Sector)) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
+After various claculations and steps, refer R script file
+```{r}
+qplot(Date, AdjClose, data=stocks, geom="line", color=Symbol, main="Daily Stock Prices")
+```
+

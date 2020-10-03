@@ -74,3 +74,155 @@ ggplot(sector_avg_prices, aes(x=Sector, y=Sector_Avg_Price, fill=Sector)) +
     geom_bar(stat="identity") + ggtitle("Sector Avg Prices") +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
+
+###########################################################################################
+
+# In order to calculate averages in multiple columns in R, we first need to melt the data.
+# This will make every column after Sector a row and then display its value, essentially
+# making the data long instead of wide.
+
+sector_avg <- melt(finviz, id="Sector")
+library("reshape")
+library("reshape2")
+sector_avg <- melt(finviz, id="Sector")
+library("XML")
+library("ggplot2")
+library("zoo")
+###########################################3
+
+sector_avg <- subset(sector_avg,variable%in%c("Price","P.E","PEG","P.S","P.B"))
+sector_avg
+
+# Removina NA values
+sector_avg <- (na.omit(sector_avg))
+sector_avg$value <- as.numeric(sector_avg$value)
+
+sector_avg <- dcast(sector_avg, Sector~variable, mean)
+colnames(sector_avg)[2:6] <- c("SAvgPE","SAvgPEG","SAvgPS","SAvgPB","SAvgPrice")
+
+#Doing it for industry
+industry_avg <- melt(finviz, id=c("Sector","Industry"))
+industry_avg <- subset(industry_avg,variable %in%c("Price","P.E","PEG","P.S","P.B"))
+industry_avg <- (na.omit(industry_avg))
+industry_avg$value <- as.numeric(industry_avg$value)
+industry_avg <- dcast(industry_avg, Sector+Industry~variable,mean)
+industry_avg <- (na.omit(industry_avg))
+colnames(industry_avg)[3:7] <- c("IAvgPE","IAvgPEG","IAvgPS","IAvgPB","IAvgPrice")
+
+# Now we add sector and industry average columns to our original finviz dataset
+finviz <- merge(finviz, sector_avg, by.x="Sector", by.y="Sector")
+finviz <- merge(finviz, industry_avg, by.x=c("Sector","Industry"), by.y=c("Sector","Industry"))
+
+# The below fields will be used to track whether a stock is undervalued, based on being lower than the sector or industry average
+finviz$SPEUnder <- 0
+finviz$SPEGUnder <- 0
+finviz$SPSUnder <- 0
+finviz$SPBUnder <- 0
+finviz$SPriceUnder <- 0
+finviz$IPEUnder <- 0
+finviz$IPEGUnder <- 0
+finviz$IPSUnder <- 0
+finviz$IPBUnder <- 0
+finviz$IPriceUnder <- 0
+
+# we replace the 0s with 1s wherever the respective value for the stock is
+# less than the average to indicate that these stocks might be undervalued based
+# on that metric
+finviz$SPEUnder[finviz$P.E<finviz$SAvgPE] <- 1
+finviz$SPEGUnder[finviz$PEG<finviz$SAvgPEG] <- 1
+finviz$SPSUnder[finviz$P.S<finviz$SAvgPS] <- 1
+finviz$SPBUnder[finviz$P.B<finviz$SAvgPB] <- 1
+finviz$SPriceUnder[finviz$Price<finviz$SAvgPrice] <- 1
+finviz$IPEUnder[finviz$P.E<finviz$IAvgPE] <- 1
+finviz$IPEGUnder[finviz$PEG<finviz$IAvgPEG] <- 1
+finviz$IPSUnder[finviz$P.S<finviz$IAvgPS] <- 1
+finviz$IPBUnder[finviz$P.B<finviz$IAvgPB] <- 1
+finviz$IPriceUnder[finviz$Price<finviz$IAvgPrice] <- 1
+
+# We sum the 10 columns to create new column with index value telling us, on a scale 
+# of 1 to 10, how undervalued the stock is based on the different dimensions
+finviz$RelValIndex <- apply(finviz[80:89],1,sum)
+
+
+
+# Screening stocks and analyzing historical prices
+
+# choose some stock screening criteria, that is, a way to select the stocks within
+# the finviz dataset that we feel have the potential to be good investments.
+
+# Only Indian companies
+# Price per share between $20 and $100
+# Volume greater than 10,000
+# Positive earnings per share currently and projected for the future
+# Total debt to equity ratio less than 1
+# Beta less than 1.5
+# Institutional ownership less than 30 percent
+# Relative valuation index value greater than 8
+
+target_stocks_india <- subset(finviz, Price>20 & Price<100 &
+                            Volume>10000 &
+                            Country=="India" &
+                            EPS.this.Y>0 &
+                            EPS.next.Y>0 &
+                            EPS.next.5Y>0 &
+                            LTDebt.Eq<1 & Beta<1.5 &
+                            Inst.Own<30)
+target_stocks_india
+
+# As we see only one Indian companies follow our restrictions we change our country to USA to 
+# have more things to calculate.
+
+target_stocks <- subset(finviz, Price>20 & Price<100 &
+                                  Volume>10000 &
+                                  Country=="USA" &
+                                  #EPS.this.Y>0 &
+                                  EPS.next.Y>0 &
+                                  EPS.next.5Y>0 &
+                                  LTDebt.Eq<1 & Beta<1.5 &
+                                  Inst.Own<30)
+target_stocks
+
+###############################################################333
+counter <- 0
+for (symbol in target_stocks$Ticker){
+    #url <- paste0("https://query1.finance.yahoo.com/v7/finance/download/SCCO?period1=1443830400&period2=1601683200&interval=1d&events=history")
+    stock <- read.csv("./Dataset/Companies.csv")
+    stock <- na.omit(stock)
+    colnames(stock)[7] <- "AdjClose"
+    stock[,1] <- as.Date(stock[,1])
+        #stock <- cbind(Symbol=symbol,stock)
+        maxrow <- nrow(stock)-49
+        ma50 <- cbind(stock[1:maxrow,1:2],rollmean(stock$AdjClose,50,align="right"))
+        maxrow <- nrow(stock)-199
+        ma200 <- cbind(stock[1:maxrow,1:2],rollmean(stock$AdjClose,200,align="right"))
+        stock <- merge(stock,ma50,by.x=c("Symbol","Date"),by.y=c("Symbol", "Date"),all.x=TRUE)
+        colnames(stock)[9] <- "MovAvg50"
+        stock <- merge(stock,ma200,by.x=c("Symbol","Date"),by.y=c("Symbol", "Date"),all.x=TRUE)
+        colnames(stock)[10] <- "MovAvg200"
+        price_chart <- melt(stock[,c(1,2,7,9,10)],id=c("Symbol","Date"))
+        qplot(Date, value, data=price_chart, geom="auto", color=variable, ylim = c(0,50), main=paste(symbol,"Daily Stock Prices"),ylab="Price")
+        ggsave(filename=paste0("stock_price_",counter,".png"))
+        price_summary <- ddply(stock, "Symbol", summarise, open=Open[nrow(stock)], high=max(High), low=min(Low),close=AdjClose[1])
+        #price_sum <- group_by(stock, Symbol)
+        #price_summary <- summarise( price_sum, open=Open[nrow(stock)], high=max(High), low=min(Low),close=AdjClose[1])
+        
+        if(counter==0){
+            stocks <- rbind(stock)
+            price_summaries <- rbind(price_summary)
+        }else{
+            stocks <- rbind(stocks, stock)
+            price_summaries <- rbind(price_summaries, price_summary)
+        }
+    
+    counter <- counter+1
+}
+
+qplot(Date, AdjClose, data=stocks, geom="line", color=Symbol, main="Daily Stock Prices")
+
+summary <- melt(price_summaries,id="Symbol")
+
+ggplot(summary, aes(x=variable, y=value, fill=Symbol)) +
+    geom_bar(stat="identity") + facet_wrap(~Symbol)
+
+
+    
